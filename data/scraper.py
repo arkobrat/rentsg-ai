@@ -110,10 +110,18 @@ async def scrape_page(page_url, page_number):
 
 # ---------- Main Scraping Loop ----------
 async def main():
+    from urllib.parse import urlencode
     page_num = 1
-    # Define your filters here
-    filters = "?page=1&propertyTypeCode=CONDO&propertyTypeGroup=N"
-    current_url = f"https://www.propertyguru.com.sg/property-for-rent/{page_num}{filters}"
+    # Define your filters here as a dictionary
+    params = {
+        "page": "1",
+        "propertyTypeCode": "CONDO",
+        "propertyTypeGroup": "N"
+        # "_freetextDisplay": "The Rochester Residences",
+        # "propertyId": "959"
+    }
+    base_url = "https://www.propertyguru.com.sg/property-for-rent"
+    current_url = f"{base_url}/{page_num}?{urlencode(params)}"
     total_records = 0
     max_records = 200
 
@@ -127,7 +135,8 @@ async def main():
         print(f"Total listings collected: {total_records}")
         if next_page:
             page_num = page_num + 1
-            current_url = f"https://www.propertyguru.com.sg/property-for-rent/{page_num}{filters}"
+            # params["page"] = page_num
+            current_url = f"{base_url}/{page_num}?{urlencode(params)}"
             await asyncio.sleep(random.uniform(10, 15))
         else:
             break
