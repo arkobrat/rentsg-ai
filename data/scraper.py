@@ -20,7 +20,7 @@ async def scrape_page(page_url, page_number):
     next_page_url = None
     
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(headless=False)
         context = await browser.new_context(
             user_agent=selected_agent,
             viewport={"width": 1280, "height": 800},
@@ -37,24 +37,28 @@ async def scrape_page(page_url, page_number):
 
         for idx, card in enumerate(listings, 1):
             try:
+                # Scroll card into view to trigger lazy loading
+                await card.scroll_into_view_if_needed()
+                await asyncio.sleep(random.uniform(0.2, 0.5))
+
                 link_elem = await card.query_selector("a.listing-card-link")
                 title = await link_elem.get_attribute("title") if link_elem else "N/A"
                 url = await link_elem.get_attribute("href") if link_elem else "N/A"
-                
+
                 image_elem = await card.query_selector("img.hui-image[da-id='media-carousel-img']")
                 image_url = await image_elem.get_attribute("src") if image_elem else "N/A"
-
+                
                 price_elem = await card.query_selector("div.listing-price")
                 price = await price_elem.inner_text() if price_elem else "N/A"
-                
+
                 address_elem = await card.query_selector("div.listing-address")
                 address = await address_elem.inner_text() if address_elem else "N/A"
-                
+
                 location_elem = await card.query_selector("div.listing-location")
                 location = await location_elem.inner_text() if location_elem else "N/A"
 
                 feature_list = await card.query_selector_all("ul.listing-feature-group li.info-item span.info-value")
-                
+
                 feature_texts = []
                 for f in feature_list:
                     txt = await f.inner_text()
