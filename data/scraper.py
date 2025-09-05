@@ -1,10 +1,11 @@
 import csv
+import os
 import random
 import asyncio
 from playwright.async_api import async_playwright
 
 # ---------- Load Rotating User Agents ----------
-def load_user_agents(filename="user_agents.txt"):
+def load_user_agents(filename=os.path.abspath(os.path.join(os.path.dirname(__file__), "user_agents.txt"))):
     with open(filename, "r", encoding="utf-8") as f:
         return [line.strip() for line in f if line.strip()]
 
@@ -19,7 +20,7 @@ async def scrape_page(page_url, page_number):
     next_page_url = None
     
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
             user_agent=selected_agent,
             viewport={"width": 1280, "height": 800},
@@ -39,14 +40,21 @@ async def scrape_page(page_url, page_number):
                 link_elem = await card.query_selector("a.listing-card-link")
                 title = await link_elem.get_attribute("title") if link_elem else "N/A"
                 url = await link_elem.get_attribute("href") if link_elem else "N/A"
+                
+                image_elem = await card.query_selector("img.hui-image[da-id='media-carousel-img']")
+                image_url = await image_elem.get_attribute("src") if image_elem else "N/A"
+
                 price_elem = await card.query_selector("div.listing-price")
                 price = await price_elem.inner_text() if price_elem else "N/A"
+                
                 address_elem = await card.query_selector("div.listing-address")
                 address = await address_elem.inner_text() if address_elem else "N/A"
+                
                 location_elem = await card.query_selector("div.listing-location")
                 location = await location_elem.inner_text() if location_elem else "N/A"
 
                 feature_list = await card.query_selector_all("ul.listing-feature-group li.info-item span.info-value")
+                
                 feature_texts = []
                 for f in feature_list:
                     txt = await f.inner_text()
@@ -60,15 +68,13 @@ async def scrape_page(page_url, page_number):
                     "Price per sqft": feature_texts[3] if len(feature_texts) > 3 else "N/A"
                 }
 
-                image_elem = await card.query_selector("img.hui-image[da-id='media-carousel-img']")
-                image_url = await image_elem.get_attribute("src") if image_elem else "N/A"
                 listing_data.append({
                     "Title": title,
                     "URL": url,
+                    "ImageURL": image_url,
                     "Price": price,
                     "Address": address,
                     "Location": location,
-                    "ImageURL": image_url,
                     "Bedrooms": features["Bedrooms"],
                     "Bathrooms": features["Bathrooms"],
                     "Floor Area": features["Floor Area"],
@@ -108,16 +114,16 @@ async def main():
     while total_records < max_records and current_url:
         records_scraped, next_url = await scrape_page(current_url, page_num)
         total_records += records_scraped
-        print(f"📦 Total listings collected: {total_records}")
+        print(f"Total listings collected: {total_records}")
         current_url = next_url
         page_num += 1
         await asyncio.sleep(random.uniform(10, 15))
 
     # ---------- Save Results ----------
-    csv_file = "propertyguru_listings.csv"
+    csv_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "propertyguru_listings.csv"))
     with open(csv_file, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=[
-            "Title", "URL", "Price", "Address", "Location", "ImageURL", "Bedrooms", "Bathrooms", "Floor Area", "Price per sqft"])
+            "Title", "URL", "ImageURL", "Price", "Address", "Location", "Bedrooms", "Bathrooms", "Floor Area", "Price per sqft"])
         writer.writeheader()
         writer.writerows(listing_data)
 
