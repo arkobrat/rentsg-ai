@@ -17,7 +17,7 @@ max_pages = 3
 async def scrape_page(page_url, page_number):
     selected_agent = random.choice(user_agents)
     records_scraped = 0
-    next_page_url = None
+    next_page = None
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=False)
@@ -31,9 +31,16 @@ async def scrape_page(page_url, page_number):
         await page.goto(page_url, timeout=60000)
         await asyncio.sleep(random.uniform(5, 8))
 
-        await page.wait_for_selector("div.listing-card-root", timeout=15000)
-        listings = await page.query_selector_all("div.listing-card-root")
-        print(f"Found {len(listings)} listings.")
+        try:
+            await page.wait_for_selector("div.listing-card-root", timeout=15000)
+            listings = await page.query_selector_all("div.listing-card-root")
+            print(f"Found {len(listings)} listings.")
+
+        except Exception as e:
+            print(f"Error loading listings on page {page_number}: {e}")
+            await browser.close()
+
+            return records_scraped, next_page
 
         for idx, card in enumerate(listings, 1):
             try:
@@ -95,33 +102,35 @@ async def scrape_page(page_url, page_number):
         # await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
         # await asyncio.sleep(1)
         # Look for the next page element before constructing next_page_url
-        next_page_url = None
         if page_number < max_pages:
-            next_elem = await page.query_selector("a[da-id='hui-pagination-btn-next']")
-            if next_elem:
-                import re
-                base_url = re.sub(r"/\d+$", "", page_url)
-                next_page_url = f"{base_url}/{page_number+1}"
+            next_page = await page.query_selector("a[da-id='hui-pagination-btn-next']")
 
         await browser.close()
-    return records_scraped, next_page_url
-
-
+    return records_scraped, next_page
 
 # ---------- Main Scraping Loop ----------
 async def main():
-    current_url = "https://www.propertyguru.com.sg/property-for-rent/1"
     page_num = 1
+    # Define your filters here
+    filters = "?page=1&propertyTypeCode=CONDO&propertyTypeGroup=N"
+    current_url = f"https://www.propertyguru.com.sg/property-for-rent/{page_num}{filters}"
     total_records = 0
     max_records = 200
 
     while total_records < max_records and current_url:
-        records_scraped, next_url = await scrape_page(current_url, page_num)
+        records_scraped, next_page = await scrape_page(current_url, page_num)
+        if records_scraped == 0:
+            print("No more records found, stopping.")
+            break
+
         total_records += records_scraped
         print(f"Total listings collected: {total_records}")
-        current_url = next_url
-        page_num += 1
-        await asyncio.sleep(random.uniform(10, 15))
+        if next_page:
+            page_num = page_num + 1
+            current_url = f"https://www.propertyguru.com.sg/property-for-rent/{page_num}{filters}"
+            await asyncio.sleep(random.uniform(10, 15))
+        else:
+            break
 
     # ---------- Save Results ----------
     csv_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "propertyguru_listings.csv"))
