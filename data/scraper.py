@@ -110,20 +110,17 @@ async def scrape_page(page_url, page_number):
 
 # ---------- Main Scraping Loop ----------
 async def main():
+
+    import json
     from urllib.parse import urlencode
     page_num = 1
 
-    property_type_group = {
-        'N': 'Condo',
-        'L': 'Landed',
-        'H': 'HDB',
-    }
-
-    mrt_stations = {
-        'Dakota': 'CC8',
-        'Paya Lebar': 'CC9',
-        'Buona Vista': 'EW21'
-    }
+    # Load filters from JSON
+    filters_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "filters.json"))
+    with open(filters_path, "r", encoding="utf-8") as f:
+        filters = json.load(f)
+    property_type_group = filters.get("property_type_group", {})
+    mrt_stations = filters.get("mrt_stations", {})
 
     # Example: set desired values here
     desired_property_type = 'Condo'  # or 'Landed', 'HDB'
@@ -149,7 +146,6 @@ async def main():
     }
 
     # Build query string with repeated mrtStations
-    from urllib.parse import urlencode
     query_parts = [urlencode(params)]
     query_parts += [f"mrtStations={code}" for code in mrt_station_codes]
     query_string = "&".join(query_parts)
@@ -168,10 +164,6 @@ async def main():
         print(f"Total listings collected: {total_records}")
         if next_page:
             page_num = page_num + 1
-            # params["page"] = page_num
-            # query_parts = [urlencode(params)]
-            # query_parts += [f"mrtStations={code}" for code in mrt_station_codes]
-            # query_string = "&".join(query_parts)
             current_url = f"{base_url}/{page_num}?{query_string}"
             await asyncio.sleep(random.uniform(10, 15))
         else:
