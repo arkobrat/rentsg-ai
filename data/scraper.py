@@ -112,16 +112,49 @@ async def scrape_page(page_url, page_number):
 async def main():
     from urllib.parse import urlencode
     page_num = 1
-    # Define your filters here as a dictionary
+
+    property_type_group = {
+        'N': 'Condo',
+        'L': 'Landed',
+        'H': 'HDB',
+    }
+
+    mrt_stations = {
+        'Dakota': 'CC8',
+        'Paya Lebar': 'CC9',
+        'Buona Vista': 'EW21'
+    }
+
+    # Example: set desired values here
+    desired_property_type = 'Condo'  # or 'Landed', 'HDB'
+    desired_mrt_stations = ['Dakota', 'Paya Lebar']  # List of desired MRT stations
+    desired_bedrooms = '2'
+
+    # Map to codes using dicts
+    property_type_code = next(
+        (k for k, v in property_type_group.items() if v == desired_property_type),
+        None  # default if not found
+    )
+
+    mrt_station_codes = [mrt_stations.get(station, '') for station in desired_mrt_stations]
+    mrt_station_codes = [code for code in mrt_station_codes if code]  # Remove empty codes
+
+    # Build params dict using mapped values (excluding mrtStations)
     params = {
-        "page": "1",
-        "propertyTypeCode": "CONDO",
-        "propertyTypeGroup": "N"
+        "page": 1,
+        "propertyTypeGroup": property_type_code,
+        "bedrooms": desired_bedrooms,
         # "_freetextDisplay": "The Rochester Residences",
         # "propertyId": "959"
     }
+
+    # Build query string with repeated mrtStations
+    from urllib.parse import urlencode
+    query_parts = [urlencode(params)]
+    query_parts += [f"mrtStations={code}" for code in mrt_station_codes]
+    query_string = "&".join(query_parts)
     base_url = "https://www.propertyguru.com.sg/property-for-rent"
-    current_url = f"{base_url}/{page_num}?{urlencode(params)}"
+    current_url = f"{base_url}/{page_num}?{query_string}"
     total_records = 0
     max_records = 200
 
@@ -136,7 +169,10 @@ async def main():
         if next_page:
             page_num = page_num + 1
             # params["page"] = page_num
-            current_url = f"{base_url}/{page_num}?{urlencode(params)}"
+            # query_parts = [urlencode(params)]
+            # query_parts += [f"mrtStations={code}" for code in mrt_station_codes]
+            # query_string = "&".join(query_parts)
+            current_url = f"{base_url}/{page_num}?{query_string}"
             await asyncio.sleep(random.uniform(10, 15))
         else:
             break
