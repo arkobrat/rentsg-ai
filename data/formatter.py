@@ -47,70 +47,11 @@ def csv_to_json(csv_file, json_file):
 			else:
 				row["Floor Area"] = ""
 			rows.append(row)
-	# Group by Title and aggregate fields
-	grouped = {}
-	for row in rows:
-		title = row.get("Title", "")
-		price = row.get("Price", "")
-		url = row.get("URL", "")
-		image_url = row.get("ImageURL", "")
-		address = row.get("Address", "")
-		location = row.get("Location", "")
-		bedrooms = row.get("Bedrooms", "")
-		bathrooms = row.get("Bathrooms", "")
-		floor_area = row.get("Floor Area", "")
-		ppsf = row.get("Price per sqft", "")
-		if title not in grouped:
-			grouped[title] = {
-				"Title": title,
-				"URLs": [url] if url else [],
-				"ImageURL": image_url,
-				"Addresses": [address] if address else [],
-				"Location": location,
-				"Prices": [int(price)] if price.isdigit() else [],
-				"Bedrooms": [int(bedrooms)] if bedrooms.isdigit() else [],
-				"Bathrooms": [int(bathrooms)] if bathrooms.isdigit() else [],
-				"Floor Area": [float(floor_area)] if floor_area.replace('.', '', 1).isdigit() else [],
-				"Price per sqft": [float(ppsf)] if ppsf.replace('.', '', 1).isdigit() else [],
-			}
-		else:
-			if url:
-				grouped[title]["URLs"].append(url)
-			if address:
-				grouped[title]["Addresses"].append(address)
-			if price.isdigit():
-				grouped[title]["Prices"].append(int(price))
-			if bedrooms.isdigit():
-				grouped[title]["Bedrooms"].append(int(bedrooms))
-			if bathrooms.isdigit():
-				grouped[title]["Bathrooms"].append(int(bathrooms))
-			if floor_area.replace('.', '', 1).isdigit():
-				grouped[title]["Floor Area"].append(float(floor_area))
-			if ppsf.replace('.', '', 1).isdigit():
-				grouped[title]["Price per sqft"].append(float(ppsf))
-	# Prepare output with ranges
-	output = []
-	for title, data in grouped.items():
-		def make_range(values):
-			if values:
-				return {"min": min(values), "max": max(values)}
-			else:
-				return {"min": None, "max": None}
-		output.append({
-			"Title": title,
-			"URLs": data["URLs"],
-			"ImageURL": data["ImageURL"],
-			"Addresses": list(set(data["Addresses"])),
-			"Location": data["Location"],
-			"Price Range": make_range(data["Prices"]),
-			"Bedrooms Range": make_range(data["Bedrooms"]),
-			"Bathrooms Range": make_range(data["Bathrooms"]),
-			"Floor Area Range": make_range(data["Floor Area"]),
-			"Price per sqft Range": make_range(data["Price per sqft"])
-		})
+	
+	# Write to JSON file
 	with open(json_file, mode="w", encoding="utf-8") as f:
-		json.dump(output, f, indent=4, ensure_ascii=False)
-	print(f"Converted {csv_file} to {json_file} (grouped by Title, aggregated URLs, addresses, ranges for numeric fields)")
+		json.dump(rows, f, indent=4, ensure_ascii=False)
+	print(f"Converted {csv_file} to {json_file}")
 
 if __name__ == "__main__":
 	csv_to_json(
