@@ -122,10 +122,11 @@ async def main():
 
     min_price = "1000"
     max_price = "10000"
-    
+
     property_type_group = filters.get("property_type_group", {})
     mrt_stations = filters.get("mrt_stations", {})
     districts = filters.get("districts", {})
+    sort_options = filters.get("sort_options", {})
 
     # Example: set desired values here
     desired_property_type = 'Condo'  # or 'Landed', 'HDB'
@@ -142,6 +143,8 @@ async def main():
     district_codes = [districts.get(district, '') for district in desired_districts]
     district_codes = [code for code in district_codes if code]  # Remove empty codes
 
+    sort_by = "Newest"  # Change this to select a different sort option
+
     # Collect all codes for selected stations, flattening lists
     mrt_station_codes = []
     for station in desired_mrt_stations:
@@ -156,7 +159,7 @@ async def main():
     print(mrt_station_codes)
     print(district_codes)
 
-    # Build params dict using mapped values (excluding mrtStations)
+    # Build params dict using mapped values (excluding repeated params)
     params = {
         "page": 1,
         "propertyTypeGroup": property_type_code,
@@ -167,10 +170,18 @@ async def main():
         # "propertyId": "959"
     }
 
-    # Build query string with repeated mrtStations
+    # Build query string with repeated mrtStations, districtCodes, and sort options
     query_parts = [urlencode(params)]
     query_parts += [f"mrtStations={code}" for code in mrt_station_codes]
     query_parts += [f"districtCode={code}" for code in district_codes]
+
+    # Add sort options if selected
+    sort_params = sort_options.get(sort_by, "")
+    if isinstance(sort_params, list):
+        query_parts += sort_params
+    elif isinstance(sort_params, str) and sort_params:
+        query_parts.append(sort_params)
+
     query_string = "&".join(query_parts)
     base_url = "https://www.propertyguru.com.sg/property-for-rent"
     current_url = f"{base_url}/{page_num}?{query_string}"
