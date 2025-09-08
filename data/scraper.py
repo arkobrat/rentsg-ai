@@ -119,12 +119,18 @@ async def main():
     filters_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "filters.json"))
     with open(filters_path, "r", encoding="utf-8") as f:
         filters = json.load(f)
+
+    min_price = "1000"
+    max_price = "10000"
+    
     property_type_group = filters.get("property_type_group", {})
     mrt_stations = filters.get("mrt_stations", {})
+    districts = filters.get("districts", {})
 
     # Example: set desired values here
     desired_property_type = 'Condo'  # or 'Landed', 'HDB'
-    desired_mrt_stations = ['Dakota', 'Paya Lebar']  # List of desired MRT stations
+    desired_mrt_stations = ['Clarke Quay', 'Chinatown']  # List of desired MRT stations
+    desired_districts = ['Boat Quay / Raffles Place / Marina', 'Chinatown / Tanjong Pagar']  # List of desired districts
     desired_bedrooms = '2'
 
     # Map to codes using dicts
@@ -132,6 +138,9 @@ async def main():
         (k for k, v in property_type_group.items() if v == desired_property_type),
         None  # default if not found
     )
+
+    district_codes = [districts.get(district, '') for district in desired_districts]
+    district_codes = [code for code in district_codes if code]  # Remove empty codes
 
     # Collect all codes for selected stations, flattening lists
     mrt_station_codes = []
@@ -144,13 +153,16 @@ async def main():
     # Remove empty codes
     mrt_station_codes = [code for code in mrt_station_codes if code]
 
-    # print(mrt_station_codes)
+    print(mrt_station_codes)
+    print(district_codes)
 
     # Build params dict using mapped values (excluding mrtStations)
     params = {
         "page": 1,
         "propertyTypeGroup": property_type_code,
         "bedrooms": desired_bedrooms,
+        "minPrice": min_price,
+        "maxPrice": max_price
         # "_freetextDisplay": "The Rochester Residences",
         # "propertyId": "959"
     }
@@ -158,6 +170,7 @@ async def main():
     # Build query string with repeated mrtStations
     query_parts = [urlencode(params)]
     query_parts += [f"mrtStations={code}" for code in mrt_station_codes]
+    query_parts += [f"districtCode={code}" for code in district_codes]
     query_string = "&".join(query_parts)
     base_url = "https://www.propertyguru.com.sg/property-for-rent"
     current_url = f"{base_url}/{page_num}?{query_string}"
