@@ -4,6 +4,15 @@
         "L": "Landed",
         "H": "HDB"
     },
+    "bedrooms": {
+        "Room": "-1",
+        "Studio": "0",
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5+": "5"
+    },
     "mrt_stations": {
         "Jurong East": [
             "NS1",
