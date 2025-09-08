@@ -127,18 +127,23 @@ async def main():
     mrt_stations = filters.get("mrt_stations", {})
     districts = filters.get("districts", {})
     sort_options = filters.get("sort_options", {})
+    bedrooms_map = filters.get("bedrooms", {})
 
     # Example: set desired values here
     desired_property_type = 'Condo'  # or 'Landed', 'HDB'
     desired_mrt_stations = ['Clarke Quay', 'Chinatown']  # List of desired MRT stations
     desired_districts = ['Boat Quay / Raffles Place / Marina', 'Chinatown / Tanjong Pagar']  # List of desired districts
-    desired_bedrooms = '2'
+    desired_bedrooms = ['2', '3']  # Can be a list: ['Room', 'Studio', '1', '2', '3', '4', '5+']
 
     # Map to codes using dicts
     property_type_code = next(
         (k for k, v in property_type_group.items() if v == desired_property_type),
         None  # default if not found
     )
+
+    # Map all desired bedrooms to codes, support multiple
+    bedrooms_codes = [bedrooms_map.get(b, '') for b in desired_bedrooms]
+    bedrooms_codes = [code for code in bedrooms_codes if code]
 
     district_codes = [districts.get(district, '') for district in desired_districts]
     district_codes = [code for code in district_codes if code]  # Remove empty codes
@@ -163,15 +168,15 @@ async def main():
     params = {
         "page": 1,
         "propertyTypeGroup": property_type_code,
-        "bedrooms": desired_bedrooms,
         "minPrice": min_price,
         "maxPrice": max_price
         # "_freetextDisplay": "The Rochester Residences",
         # "propertyId": "959"
     }
 
-    # Build query string with repeated mrtStations, districtCodes, and sort options
+    # Build query string with repeated bedrooms, mrtStations, districtCodes, and sort options
     query_parts = [urlencode(params)]
+    query_parts += [f"bedrooms={code}" for code in bedrooms_codes]
     query_parts += [f"mrtStations={code}" for code in mrt_station_codes]
     query_parts += [f"districtCode={code}" for code in district_codes]
 
