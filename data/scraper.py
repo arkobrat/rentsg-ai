@@ -133,8 +133,18 @@ async def main():
         None  # default if not found
     )
 
-    mrt_station_codes = [mrt_stations.get(station, '') for station in desired_mrt_stations]
-    mrt_station_codes = [code for code in mrt_station_codes if code]  # Remove empty codes
+    # Collect all codes for selected stations, flattening lists
+    mrt_station_codes = []
+    for station in desired_mrt_stations:
+        codes = mrt_stations.get(station, [])
+        if isinstance(codes, list):
+            mrt_station_codes.extend(codes)
+        elif codes:
+            mrt_station_codes.append(codes)
+    # Remove empty codes
+    mrt_station_codes = [code for code in mrt_station_codes if code]
+
+    # print(mrt_station_codes)
 
     # Build params dict using mapped values (excluding mrtStations)
     params = {
