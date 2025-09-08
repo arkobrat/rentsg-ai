@@ -215,7 +215,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-*.csv
-*.json
+propertyguru_listings.csv
+propertyguru_listings.json
 
 .DS_Store
